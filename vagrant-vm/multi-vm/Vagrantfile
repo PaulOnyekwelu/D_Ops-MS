@@ -1,0 +1,66 @@
+Vagrant.configure("2") do |config|
+  config.vm.provision "shell", inline: "echo 'Bootstrapping vms...'"
+
+  config.vm.define "portfolio" do |portfolio|
+    portfolio.vm.box = "ubuntu/focal64"
+    portfolio.vm.network "private_network", ip: "192.168.33.21"
+    portfolio.vm.provision "shell", inline: <<-SHELL
+      apt-get update
+      apt-get install apache2 unzip -y
+      systemctl enable apache2.service
+      systemctl start apache2.service
+      cd /tmp/
+      wget https://www.tooplate.com/zip-templates/2129_crispy_kitchen.zip
+      unzip -o 2129_crispy_kitchen.zip
+      cp -r 2129_crispy_kitchen/* /var/www/html/
+      systemctl restart apache2.service
+      echo "Succesfully deployed portfolio website..."
+    SHELL
+  end
+
+  config.vm.define "wordpress" do |wordpress|
+    wordpress.vm.box = "geerlingguy/centos7"
+    wordpress.vm.network "private_network", ip: "192.168.33.22"
+    wordpress.vm.provider "virtualbox" do |vb|
+      vb.memory = "1024"
+    end
+    wordpress.vm.provision "shell", inline: <<-SHELL
+      sudo setenforce 0
+      sudo yum update -y
+
+      sudo yum install httpd -y
+      sudo systemctl enable httpd
+      sudo systemctl start httpd
+
+      sudo firewall-cmd --permanent --zone=public --add-service=http
+      sudo firewall-cmd --permanent --zone=public --add-service=https
+      sudo systemctl reload firewalld
+
+      sudo yum install mariadb-server -y
+      sudo systemctl enable mariadb
+      sudo systemctl start mariadb
+      sudo mysql -u root -e 'create database wordpress;'
+      sudo mysql -u root -e "CREATE USER 'wordpress'@'localhost' IDENTIFIED BY 'admin123';"
+      sudo mysql -u root -e "GRANT ALL PRIVILEGES ON wordpress.* TO 'wordpress'@'localhost';"
+      sudo mysql -u root -e "FLUSH PRIVILEGES;"
+      
+      sudo yum install http://rpms.remirepo.net/enterprise/remi-release-7.rpm -y
+      sudo yum --enablerepo=remi-php74 install php php-mysqlnd php-bz2 php-mysql \
+            php-curl php-gd php-intl php-common php-mbstring php-xml
+      sudo systemctl restart httpd
+
+      cd /tmp/
+      sudo yum install wget unzip -y
+      wget http://WordPress.org/latest.zip
+      sudo unzip -o latest.zip
+      sudo cp -r /tmp/wordpress/* /var/www/html/
+      cp /vagrant/wp-config.php /var/www/html/wp-config.php
+      mkdir -p /var/www/html/wp-content/uploads
+
+      sudo chown -R apache.apache /var/www/html/
+      sudo systemctl daemon-reload
+      sudo systemctl restart httpd
+      echo "Succesfully deployed wordpress website.."
+    SHELL
+  end
+end
