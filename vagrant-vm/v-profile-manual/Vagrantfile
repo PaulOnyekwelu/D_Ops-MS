@@ -1,0 +1,42 @@
+Vagrant.configure("2") do |config|
+  config.hostmanager.enabled = true
+  config.hostmanager.manage_host = true
+  
+### Nginx VM ###
+  config.vm.define "nxvm" do |nxvm|
+    nxvm.vm.box = "ubuntu/focal64"
+    nxvm.vm.hostname = "nxvm"
+	  nxvm.vm.network "private_network", ip: "192.168.56.20"
+  end
+  
+### tomcat vm ###
+   config.vm.define "tcvm" do |tcvm|
+    tcvm.vm.box = "geerlingguy/centos7"
+    tcvm.vm.hostname = "tcvm"
+    tcvm.vm.network "private_network", ip: "192.168.56.21"
+	  tcvm.vm.provider "virtualbox" do |vb|
+      vb.memory = "1024"
+	  end
+   end
+   
+### RabbitMQ vm  ####
+  config.vm.define "rmqvm" do |rmqvm|
+    rmqvm.vm.box = "geerlingguy/centos7"
+	  rmqvm.vm.hostname = "rmqvm"
+    rmqvm.vm.network "private_network", ip: "192.168.56.22"
+  end
+  
+### Memcache vm  #### 
+  config.vm.define "mcvm" do |mcvm|
+    mcvm.vm.box = "geerlingguy/centos7"
+	  mcvm.vm.hostname = "mcvm"
+    mcvm.vm.network "private_network", ip: "192.168.56.23"
+  end
+  
+### DB vm  ####
+  config.vm.define "dbvm" do |dbvm|
+    dbvm.vm.box = "geerlingguy/centos7"
+	  dbvm.vm.hostname = "dbvm"
+    dbvm.vm.network "private_network", ip: "192.168.56.24"
+  end
+end
